@@ -11,7 +11,7 @@
 
 // Definitions and prototypes
 
-#define ADC_MIN_READVALUE   450
+#define ADC_MIN_READVALUE   900
 
 void adc_init_wrapper(); 
 void adc_gpio_init_wrapper(int);

@@ -12,7 +12,7 @@ PASOS PARA HACER EL PWM EN ASAMBLER
 2. Configurar la funcion(que funcione con el pwm) -------------------------------------------------- f2
 3. configurar el modulo PWM
     -CHx_div 0x04(freq
-     divi) ----------------------------------------------------------------------- f3
+     divi) ----------------------------------------------------------------------------------------- f3
     -CHx_TOP 0x10(WRAD) ---------------------------------------------------------------------------- f4 
     -CHx_CC 0x0c (counter compare) ----------------------------------------------------------------- f5
     -CHx_CSR 0x00(Enable) -------------------------------------------------------------------------- f6
@@ -45,11 +45,11 @@ coger la base, al slice se multiplica por 20 y el 20 se lo sumamos a la base(reg
  *  R0: GPIO_NUM
  */
 .global gpio_init_pwm_asm                   // To allow this function to be called from another file
-gpio_init_asm:
+gpio_init_asm:    //iniciar un GPIO como PWM
         push {r0, lr}
-        bl releaseResetPWM
+        bl releaseResetPWM // Quita el reset de todos los PWM 
         pop {r0}
-        bl setFunction_pwm_asm
+        bl setFunction_pwm_asm // Activa un gpio como PWM
         pop {pc}
 
 /**
@@ -99,29 +99,30 @@ Cal_slices_asm:
     bx lr
 
 /*Configurar divisor de frecuencia */
-.equ PWM_BASE, 0x40050000
+//cada slice tiene 5 registros 
+.equ PWM_BASE, 0x40050000 //  Base de los registros 
 .global Config_div_asm
 Config_div_asm:
     push {r4}
     ldr r3, =PWM_BASE
-    mov r4, #20
+    mov r4, #20 //5 registros por slice y cada registro es de 4 bytes
     mul r4, r4, r0
-    add r4, r4, #4
-    add r4, r4, r3
+    add r4, r4, #4 // sumar offset
+    add r4, r4, r3 //sumar la direccion base de los registros
 
-    lsl r1, #4
+    lsl r1, #4 //se desplaza 4 para no sobre escribir los otro bits de la estructura del registro 
     orr r1, r1, r2
     str r1, [r4]   
     pop {r4}    
     bx lr
 
-.global Config_CC_asm
+.global Config_CC_asm // Configuramos el canal 
 Config_CC_asm:
     push {r4, r5}
     ldr r3, =PWM_BASE
-    mov r4, #20
+    mov r4, #20 //5 registros por slice y cada registro es de 4 bytes
     mul r4, r4, r0
-    mov r5, #12
+    mov r5, #12 //offset de 12
     add r4, r4, r5
     add r4, r4, r3
 
@@ -131,17 +132,17 @@ Config_CC_asm:
     pop {r4, r5}    
     bx lr
 
-.global Config_TOP_asm 
-Config_TOP_asm:
+.global Config_TOP_asm // Configurar el top 
+Config_TOP_asm: //hasta donde cuenta el PWM, calcular la frecuencia 
     push {r4}
     ldr r3, =PWM_BASE
     mov r2, #20
     mul r2, r2, r0
-    mov r4, #16
+    mov r4, #16 // offset de 16
     add r2, r2, r4
     add r2, r2, r3
 
-    str r1, [r2]   
+    str r1, [r2]   //guardamos el top 
     pop {r4}    
     bx lr
     
@@ -160,4 +161,4 @@ Enable_PWM_asm:
     bx lr
 
 .data
-PWM_BITMASK: .dc.l 0x4000
+PWM_BITMASK: .dc.l 0x4000 //bit 14 en "1", hexadecimal 
