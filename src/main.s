@@ -23,18 +23,33 @@
 .equ    GPIO_ADC_1, 26
 .equ    GPIO_PWM_2, 18
 .equ    GPIO_ADC_2, 27
+.equ    GPIO_LED_UNO, 15
+.equ    GPIO_LED_DOS, 16
 .equ    PWM_TOP_VALUE, 4095
-.equ    MIN_VALUE_READ, 910
+.equ    MIN_VALUE_READ, 1800
 .equ    Delay, 0x4C4B40
 
 
 .global main_asm 
 // system main for project
 main_asm: 
-    push {r4, r5, lr}
+    push {r4, r5,r6, r7, lr}
     // ADC Initialization
     bl project_adc_init_asm
+    // Inicializacion de los leds
+        // Led 1
+        mov r0, #GPIO_LED_UNO
+        bl gpio_init_asm
+        // Led 2
+        mov r0, #GPIO_LED_DOS
+        bl gpio_init_asm
+    mov r0, #GPIO_LED_UNO
+    mov r1, #1
+    bl gpio_set_dir_asm
 
+    mov r0, #GPIO_LED_DOS
+    mov r1, #1
+    bl gpio_set_dir_asm
     // PWM Initialization one
         // Initialize function PWM for GPIO: PWM_GPIO_CHA
         mov r0, #GPIO_PWM_1
@@ -135,6 +150,8 @@ main_asm:
             bge check_motor2       // Saltar si r5 >= r3
 
             // Ambos valores están por debajo de la luz ambiente
+            movs r6, #0
+            movs r7, #0
             movs r4, #0            // pwm1 = 0
             movs r5, #0            // pwm2 = 0
             b next_loop            // Saltar al final de la rutina
@@ -151,12 +168,16 @@ main_asm:
             
             // Si r4 recibe más luz que r5
             more_light1:
+                movs r6, #1
+                movs r7, #0
                 movs r4, r4        // pwm1 = PWM_MAX
                 movs r5, #0        // pwm2 = 0
                 B next_loop   // Saltar al final de la rutina
             
             // Si r5 recibe más luz que r4
             more_light2:
+                movs r6, #0
+                movs r7, #1
                 movs r4, #0        // pwm1 = 0
                 movs r5, r5        // pwm2 = PWM_MAX
 
@@ -170,6 +191,13 @@ main_asm:
             mov r1, #0
             mov r2, r4
             bl Config_CC_asm
+        //Activar los leds
+        mov r0, #GPIO_LED_UNO
+        mov r1, r6
+        bl gpio_put_asm
+        mov r0, #GPIO_LED_DOS
+        mov r1, r7
+        bl gpio_put_asm
 
         // PWM counter compare level changer 2
             // Determine the PWM slice connected to GPIO: PWM_GPIO_CHA
@@ -186,7 +214,7 @@ main_asm:
 
         // Mantener el ciclo infinito
         b loop
-    pop {r4, r5, pc}
+    pop {r4, r5, r6, r7, pc}
 .data
 
 
